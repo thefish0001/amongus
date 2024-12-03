@@ -1,0 +1,284 @@
+local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
+
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+local workspaceItems = game.Workspace:FindFirstChild("Item_Spawns") and game.Workspace.Item_Spawns:FindFirstChild("Items")
+local restrictedItems = {"Green Candy", "Blue Candy", "Red Candy", "Yellow Candy"}
+local standFarming = false
+
+-- Notification for script load
+OrionLib:MakeNotification({
+	Name = "Script Loaded",
+	Content = "Farming script loaded successfully.",
+	Image = "rbxassetid://4483345998",
+	Time = 5
+})
+
+
+
+-- Function to sell equipped items
+local function sellCurrentItem()
+	local equippedItem = player.Character:FindFirstChildOfClass("Tool")
+	if equippedItem then
+		local args = {
+			[1] = "EndDialogue",
+			[2] = {
+				["Option"] = "Option1",
+				["Dialogue"] = "Dialogue5",
+				["NPC"] = "Merchant"
+			}
+		}
+		player.Character.RemoteEvent:FireServer(unpack(args))
+	end
+end
+
+-- Function to equip a random valid item
+local function equipRandomItem()
+	local backpack = player.Backpack
+	local validItems = {}
+	for _, item in ipairs(backpack:GetChildren()) do
+		if item:IsA("Tool") and not table.find(restrictedItems, item.Name) then
+			table.insert(validItems, item)
+		end
+	end
+	if #validItems > 0 then
+		local randomItem = validItems[math.random(1, #validItems)]
+		player.Character:FindFirstChildOfClass("Humanoid"):EquipTool(randomItem)
+	end
+end
+
+-- Function to find the closest item prompt
+local function getClosestPrompt()
+	local closestPrompt, closestDistance = nil, math.huge
+	if workspaceItems then
+		for _, descendant in ipairs(workspaceItems:GetDescendants()) do
+			if descendant:IsA("ProximityPrompt") then
+				local promptPart = descendant.Parent:FindFirstChild("MeshPart")
+				if promptPart then
+					local distance = (promptPart.Position - humanoidRootPart.Position).Magnitude
+					if distance < closestDistance then
+						closestPrompt = descendant
+						closestDistance = distance
+					end
+				end
+			end
+		end
+	end
+	return closestPrompt
+end
+
+-- Function to move towards a position
+local function moveToPosition(position)
+	local distance = (position - humanoidRootPart.Position).Magnitude
+	local direction = (position - humanoidRootPart.Position).Unit
+	humanoidRootPart.CFrame = humanoidRootPart.CFrame + direction * math.min(distance, 10)
+end
+
+-- Main farming logic for items
+local function itemFarmLogic()
+	while itemFarming do
+		local closestPrompt = getClosestPrompt()
+		if closestPrompt then
+			local promptPart = closestPrompt.Parent:FindFirstChild("MeshPart")
+			if promptPart then
+				moveToPosition(promptPart.Position)
+				if (humanoidRootPart.Position - promptPart.Position).Magnitude <= 5 then
+					fireproximityprompt(closestPrompt)
+					task.wait(1.5)
+				end
+			end
+		end
+		task.wait(0.5)
+	end
+end
+
+-- NPC Farming logic
+local npcFarming = false
+
+local function findTargetNPC()
+	for _, npc in ipairs(game.Workspace.Living:GetChildren()) do
+		if npc.Name == "Jotaro Kujo" and npc:FindFirstChild("HumanoidRootPart") then
+			return npc
+		end
+	end
+	return nil
+end
+
+local function npcFarmLogic()
+	while npcFarming do
+		local target = findTargetNPC()
+		if target and target:FindFirstChild("HumanoidRootPart") then
+			local targetHRP = target.HumanoidRootPart
+			local distance = (humanoidRootPart.Position - targetHRP.Position).Magnitude
+			if distance > 5 then
+				moveToPosition(targetHRP.Position)
+			else
+				local args = {
+					[1] = "HoldAttack",
+					[2] = {
+						["Bool"] = true,
+						["Type"] = "m1"
+					}
+				}
+				player.Character.RemoteEvent:FireServer(unpack(args))
+			end
+		end
+		task.wait(0.1)
+	end
+end
+
+-- GUI
+local Window = OrionLib:MakeWindow({Name = "YBA Farming Script", HidePremium = false, SaveConfig = true, ConfigFolder = "Orion"})
+
+-- Item Tab
+local ItemTab = Window:MakeTab({
+	Name = "Item",
+	Icon = "rbxassetid://4483345998",
+	PremiumOnly = false
+})
+
+ItemTab:AddToggle({
+	Name = "Item Farm",
+	Default = false,
+	Callback = function(Value)
+		itemFarming = Value
+		if itemFarming then
+			task.spawn(itemFarmLogic)
+		end
+	end
+})
+
+ItemTab:AddToggle({
+	Name = "Auto Sell Items",
+	Default = false,
+	Callback = function(Value)
+		autoSell = Value
+		while autoSell do
+			equipRandomItem()
+			sellCurrentItem()
+			task.wait(0.1)
+		end
+	end
+})
+
+local NPCTab = Window:MakeTab({
+	Name = "NPC",
+	Icon = "rbxassetid://4483345998",
+	PremiumOnly = false
+})
+
+NPCTab:AddToggle({
+	Name = "NPC Farm",
+	Default = false,
+	Callback = function(Value)
+		npcFarming = Value
+		if npcFarming then
+			task.spawn(npcFarmLogic)
+		end
+	end
+})
+
+local player = game.Players.LocalPlayer
+local backpack = player.Backpack
+local farmStage = nil
+local stand = "None"
+local worthiness1 = nil
+local stands = {"The World", "Star Platinum", "Crazy Diamond", "King Crimson"}
+
+local function UseItem(item)
+	local inventoryItem = backpack:FindFirstChild(item)
+	if inventoryItem then
+		inventoryItem.Parent = player.Character
+		if inventoryItem:IsA("Tool") then
+			inventoryItem:Activate() 
+		end
+	end
+end
+
+local function checkStand()
+	if player.PlayerStats then
+		if player.PlayerStats:FindFirstChild("Stand") then
+			stand = player.PlayerStats.Stand.Value
+		else
+			stand = "None"
+		end
+	end
+end
+
+local function checkWorthiness1()
+	if player.CharacterSkillTree then
+		if player.CharacterSkillTree:FindFirstChild("Worthiness I") then
+			worthiness1 = player.CharacterSkillTree["Worthiness I"].Value
+		end
+	end
+end
+
+local function isValidStand(stand)
+	for _, validStand in ipairs(stands) do
+		if stand == validStand then
+			return true
+		end
+	end
+	return false
+end
+
+local function updatePlayerData()
+	backpack = player.Backpack
+	-- Check if player’s character is valid
+	if player.Character then
+		checkStand()
+		checkWorthiness1()
+	end
+end
+
+-- Function to handle respawn
+player.CharacterAdded:Connect(function()
+	wait(1) -- Wait for the new character to load
+	updatePlayerData()
+end)
+
+local function standFarmLogic()
+	while standFarming do
+		updatePlayerData()
+		if not standFarming then break end -- Check if the toggle has been turned off
+
+		if stand == "None" then
+			if worthiness1 == false then
+				local args = {
+					[1] = "LearnSkill",
+					[2] = {
+						["Skill"] = "Worthiness I",
+						["SkillTreeType"] = "Character"
+					}
+				}
+				game:GetService("Players").LocalPlayer.Character.RemoteFunction:InvokeServer(unpack(args))
+			elseif worthiness1 == true then
+				UseItem('Mysterious Arrow')
+			end
+		elseif not isValidStand(stand) then
+			UseItem("Rokakaka")
+		end
+		task.wait(1) -- Add a wait to prevent excessive CPU usage
+	end
+end
+
+local StandTab = Window:MakeTab({
+	Name = "Stand",
+	Icon = "rbxassetid://4483345998",
+	PremiumOnly = false
+})
+
+StandTab:AddToggle({
+	Name = "Stand Farm",
+	Default = false,
+	Callback = function(Value)
+		standFarming = Value
+		if standFarming then
+			task.spawn(standFarmLogic)
+		end
+	end
+})
+
+OrionLib:Init()
