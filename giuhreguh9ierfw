@@ -1,0 +1,21 @@
+local Chr = script.Parent
+local Humanoid = script.Parent:WaitForChild("Humanoid")
+
+while wait() do
+	local playerName = "erlonoso" -- The target player's name
+	local maxDistance = 50 -- Maximum distance to detect the target player
+	
+	for _, TargetModel in pairs(game:GetService("Workspace"):GetChildren()) do
+		if TargetModel.Name == playerName then -- Check if the model is the target player
+			local TargetPart = TargetModel:FindFirstChild("HumanoidRootPart")
+			local FoundHumanoid = TargetModel:FindFirstChildOfClass("Humanoid")
+			
+			if FoundHumanoid and FoundHumanoid.Health > 0 and TargetPart and TargetModel ~= script.Parent then
+				if (Chr.HumanoidRootPart.Position - TargetPart.Position).magnitude < maxDistance then
+					maxDistance = (Chr.HumanoidRootPart.Position - TargetPart.Position).magnitude
+					Humanoid:MoveTo(TargetPart.Position)
+				end
+			end
+		end
+	end
+end
