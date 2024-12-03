@@ -1,0 +1,56 @@
+-- Place this script in a LocalScript in StarterPlayerScripts
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = player:WaitForChild("PlayerGui")
+screenGui.Name = "AmongUsFun"
+
+local function createAmongUsText()
+    -- Create text
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Size = UDim2.new(0, 200, 0, 50)
+    textLabel.Position = UDim2.new(math.random(), 0, math.random(), 0)
+    textLabel.BackgroundTransparency = 1
+    textLabel.Text = "Among Us!"
+    textLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+    textLabel.Font = Enum.Font.GothamBlack
+    textLabel.TextScaled = true
+    textLabel.Parent = screenGui
+
+    -- Make it fade out after a while
+    game:GetService("TweenService"):Create(textLabel, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+        TextTransparency = 1
+    }):Play()
+
+    task.wait(1.5) -- Wait for fade out to finish
+    textLabel:Destroy()
+end
+
+local function createAmongUsImage()
+    -- Create image
+    local imageLabel = Instance.new("ImageLabel")
+    imageLabel.Size = UDim2.new(0, 100, 0, 100)
+    imageLabel.Position = UDim2.new(math.random(), 0, math.random(), 0)
+    imageLabel.BackgroundTransparency = 1
+    imageLabel.Image = "rbxassetid://10224347269"
+    imageLabel.Parent = screenGui
+
+    -- Make it grow and then fade
+    local growTween = game:GetService("TweenService"):Create(imageLabel, TweenInfo.new(1, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+        Size = UDim2.new(0, 150, 0, 150),
+        ImageTransparency = 0.5
+    })
+    growTween:Play()
+
+    growTween.Completed:Connect(function()
+        imageLabel:Destroy()
+    end)
+end
+
+-- Main loop to display random "funny Among Us" elements
+while true do
+    createAmongUsText()
+    task.wait(math.random(1, 3)) -- Random delay between 1 and 3 seconds
+    createAmongUsImage()
+    task.wait(math.random(1, 3))
+end
